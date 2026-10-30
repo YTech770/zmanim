@@ -1,47 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chabad.org Live Zmanim</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-900 text-white min-h-screen p-4 md:p-8 flex flex-col items-center font-sans">
-
-  <div class="max-w-xl w-full space-y-6">
-    <!-- Title Header -->
-    <div class="text-center space-y-1">
-      <h1 class="text-3xl font-extrabold text-amber-400">Chabad.org Zmanim</h1>
-      <p class="text-slate-400 text-sm">Direct proxy from Chabad.org servers</p>
-    </div>
-
-    <!-- Search Input Box -->
-    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-3">
-      <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Location Search</label>
-      <div class="flex gap-2">
-        <input id="locationInput" type="text" placeholder="e.g. Crown Heights, 11213, Miami" 
-          class="flex-1 bg-slate-900 border border-slate-700 px-4 py-2.5 rounded-lg text-white focus:outline-none focus:border-amber-400 text-sm">
-        <button onclick="getZmanim()" 
-          class="bg-amber-500 hover:bg-amber-600 font-bold px-5 py-2.5 rounded-lg text-slate-950 transition text-sm">
-          Get Zmanim
-        </button>
-      </div>
-      <p id="status" class="text-xs text-amber-400 min-h-[1.25rem]"></p>
-    </div>
-
-    <!-- Zmanim Results Output -->
-    <div id="results" class="bg-slate-800 p-5 rounded-xl border border-slate-700 hidden space-y-4">
-      <div class="border-b border-slate-700 pb-3">
-        <h2 id="locationName" class="text-xl font-bold text-amber-300"></h2>
-        <p id="chabadId" class="text-xs text-slate-400 mt-0.5"></p>
-      </div>
-
-      <div id="zmanimList" class="space-y-2 text-sm"></div>
-    </div>
-  </div>
-
   <script>
-    // Live Cloudflare Worker Proxy URL
     const WORKER_URL = "https://zmanim.l-c-a-mendel.workers.dev";
 
     async function getZmanim() {
@@ -57,65 +14,64 @@
         return;
       }
 
-      status.innerText = "🔍 Searching location on Chabad.org...";
+      status.innerText = "🔍 Connecting to worker...";
       results.classList.add("hidden");
 
       try {
-        // Step 1: Find location ID on Chabad.org
-        const searchRes = await fetch(`${WORKER_URL}/search?q=${encodeURIComponent(input)}`);
+        const searchUrl = `${WORKER_URL}/search?q=${encodeURIComponent(input)}`;
+        const searchRes = await fetch(searchUrl);
+        
+        if (!searchRes.ok) {
+          throw new Error(`Worker returned HTTP ${searchRes.status} (${searchRes.statusText})`);
+        }
+        
         const searchData = await searchRes.json();
 
         if (!searchData || searchData.length === 0) {
-          status.innerText = "Location not found on Chabad.org. Try another city or ZIP.";
+          status.innerText = "Location not found on Chabad.org.";
           return;
         }
 
         const match = searchData[0];
         const locationId = match.id || match.locationId || "370";
-        const displayName = match.name || input;
+        locationName.innerText = match.name || input;
+        chabadId.innerText = `Chabad ID: ${locationId}`;
 
-        locationName.innerText = displayName;
-        chabadId.innerText = `Chabad.org Location ID: ${locationId}`;
-
-        // Step 2: Fetch Zmanim HTML content
-        status.innerText = "⚡ Fetching live Zmanim page from Chabad.org...";
+        status.innerText = "⚡ Fetching Zmanim...";
         const zmanimRes = await fetch(`${WORKER_URL}/zmanim?locationId=${locationId}`);
+        
+        if (!zmanimRes.ok) {
+          throw new Error(`Zmanim endpoint returned HTTP ${zmanimRes.status}`);
+        }
+        
         const zmanimData = await zmanimRes.json();
 
-        status.innerText = "Parsing times...";
-
-        // Step 3: Extract times from returned HTML using DOMParser
         const parser = new DOMParser();
         const doc = parser.parseFromString(zmanimData.htmlContent, "text/html");
-
-        // Query table rows from Chabad's rendered HTML
         const rows = doc.querySelectorAll("tr, .zmanim-row, .zmanRow");
+        
         let parsedHtml = "";
-
-        if (rows.length > 0) {
-          rows.forEach(row => {
-            const text = row.innerText.trim();
-            if (text && text.length < 150) {
-              parsedHtml += `<div class="p-2.5 bg-slate-900 rounded border border-slate-700/60 font-mono text-slate-200">${text}</div>`;
-            }
-          });
-        }
+        rows.forEach(row => {
+          const text = row.innerText.trim();
+          if (text && text.length < 150) {
+            parsedHtml += `<div class="p-2.5 bg-slate-900 rounded border border-slate-700/60 font-mono text-slate-200">${text}</div>`;
+          }
+        });
 
         if (!parsedHtml) {
-          // Fallback if structure varies: display raw text content snippet
-          const bodyText = doc.body.innerText.split("\n").filter(line => line.trim().length > 0).slice(0, 15).join("<br>");
-          parsedHtml = `<div class="p-3 bg-slate-900 rounded border border-slate-700 text-xs font-mono">${bodyText}</div>`;
+          parsedHtml = `<div class="p-3 bg-slate-900 rounded border border-slate-700 text-xs font-mono">${doc.body.innerText.slice(0, 300)}</div>`;
         }
 
         zmanimList.innerHTML = parsedHtml;
-        status.innerText = "✓ Zmanim successfully loaded from Chabad.org!";
+        status.innerText = "✓ Loaded successfully!";
         results.classList.remove("hidden");
 
       } catch (err) {
-        status.innerText = "❌ Error: " + err.message;
+        // Shows the exact error message or network failure reason
+        status.innerText = `❌ Error: ${err.message}`;
+        console.error(err);
       }
     }
   </script>
-</body>
-</html>
+
 
