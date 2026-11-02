@@ -1,3 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chabad.org Zmanim</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen p-4 md:p-8 flex flex-col items-center font-sans">
+
+  <div class="max-w-xl w-full space-y-6">
+    <div class="text-center space-y-1">
+      <h1 class="text-3xl font-extrabold text-amber-400">Chabad.org Zmanim</h1>
+      <p class="text-slate-400 text-sm">Direct proxy from Chabad.org servers</p>
+    </div>
+
+    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-3">
+      <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Location Search</label>
+      <div class="flex gap-2">
+        <input id="locationInput" type="text" placeholder="e.g. Crown Heights, 11213, Miami" 
+          class="flex-1 bg-slate-900 border border-slate-700 px-4 py-2.5 rounded-lg text-white focus:outline-none focus:border-amber-400 text-sm">
+        <button onclick="getZmanim()" 
+          class="bg-amber-500 hover:bg-amber-600 font-bold px-5 py-2.5 rounded-lg text-slate-950 transition text-sm">
+          Get Zmanim
+        </button>
+      </div>
+      <p id="status" class="text-xs text-amber-400 min-h-[1.25rem]"></p>
+    </div>
+
+    <div id="results" class="bg-slate-800 p-5 rounded-xl border border-slate-700 hidden space-y-4">
+      <div class="border-b border-slate-700 pb-3">
+        <h2 id="locationName" class="text-xl font-bold text-amber-300"></h2>
+        <p id="chabadId" class="text-xs text-slate-400 mt-0.5"></p>
+      </div>
+      <div id="zmanimList" class="space-y-2 text-sm"></div>
+    </div>
+  </div>
+
   <script>
     const WORKER_URL = "https://zmanim.l-c-a-mendel.workers.dev";
 
@@ -67,9 +105,10 @@
         results.classList.remove("hidden");
 
       } catch (err) {
-        // Shows the exact error message or network failure reason
         status.innerText = `❌ Error: ${err.message}`;
         console.error(err);
       }
     }
   </script>
+</body>
+</html>
