@@ -56,21 +56,15 @@
       results.classList.add("hidden");
 
       try {
-        const searchUrl = `${WORKER_URL}/search?q=${encodeURIComponent(input)}`;
-        const searchRes = await fetch(searchUrl);
+        const searchRes = await fetch(`${WORKER_URL}/search?q=${encodeURIComponent(input)}`, {
+          mode: 'cors'
+        });
         
-        const textResp = await searchRes.text();
-        let searchData;
-        try {
-          searchData = JSON.parse(textResp);
-        } catch (e) {
-          throw new Error(`Worker returned non-JSON: ${textResp.slice(0, 100)}`);
-        }
-
         if (!searchRes.ok) {
-          throw new Error(searchData.error || `HTTP ${searchRes.status}`);
+          throw new Error(`Worker HTTP ${searchRes.status}`);
         }
 
+        const searchData = await searchRes.json();
         if (!searchData || searchData.length === 0) {
           status.innerText = "Location not found on Chabad.org.";
           return;
@@ -82,20 +76,15 @@
         chabadId.innerText = `Chabad ID: ${locationId}`;
 
         status.innerText = "⚡ Fetching Zmanim...";
-        const zmanimRes = await fetch(`${WORKER_URL}/zmanim?locationId=${locationId}`);
-        const zmanimText = await zmanimRes.text();
-        
-        let zmanimData;
-        try {
-          zmanimData = JSON.parse(zmanimText);
-        } catch (e) {
-          throw new Error(`Zmanim non-JSON: ${zmanimText.slice(0, 100)}`);
-        }
+        const zmanimRes = await fetch(`${WORKER_URL}/zmanim?locationId=${locationId}`, {
+          mode: 'cors'
+        });
 
         if (!zmanimRes.ok) {
-          throw new Error(zmanimData.error || `HTTP ${zmanimRes.status}`);
+          throw new Error(`Zmanim HTTP ${zmanimRes.status}`);
         }
 
+        const zmanimData = await zmanimRes.json();
         const parser = new DOMParser();
         const doc = parser.parseFromString(zmanimData.htmlContent, "text/html");
         const rows = doc.querySelectorAll("tr, .zmanim-row, .zmanRow");
@@ -118,7 +107,6 @@
 
       } catch (err) {
         status.innerText = `❌ Error: ${err.message}`;
-        console.error(err);
       }
     }
   </script>
