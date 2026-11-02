@@ -59,11 +59,17 @@
         const searchUrl = `${WORKER_URL}/search?q=${encodeURIComponent(input)}`;
         const searchRes = await fetch(searchUrl);
         
-        if (!searchRes.ok) {
-          throw new Error(`Worker returned HTTP ${searchRes.status} (${searchRes.statusText})`);
+        const textResp = await searchRes.text();
+        let searchData;
+        try {
+          searchData = JSON.parse(textResp);
+        } catch (e) {
+          throw new Error(`Worker returned non-JSON: ${textResp.slice(0, 100)}`);
         }
-        
-        const searchData = await searchRes.json();
+
+        if (!searchRes.ok) {
+          throw new Error(searchData.error || `HTTP ${searchRes.status}`);
+        }
 
         if (!searchData || searchData.length === 0) {
           status.innerText = "Location not found on Chabad.org.";
@@ -77,12 +83,18 @@
 
         status.innerText = "⚡ Fetching Zmanim...";
         const zmanimRes = await fetch(`${WORKER_URL}/zmanim?locationId=${locationId}`);
+        const zmanimText = await zmanimRes.text();
         
-        if (!zmanimRes.ok) {
-          throw new Error(`Zmanim endpoint returned HTTP ${zmanimRes.status}`);
+        let zmanimData;
+        try {
+          zmanimData = JSON.parse(zmanimText);
+        } catch (e) {
+          throw new Error(`Zmanim non-JSON: ${zmanimText.slice(0, 100)}`);
         }
-        
-        const zmanimData = await zmanimRes.json();
+
+        if (!zmanimRes.ok) {
+          throw new Error(zmanimData.error || `HTTP ${zmanimRes.status}`);
+        }
 
         const parser = new DOMParser();
         const doc = parser.parseFromString(zmanimData.htmlContent, "text/html");
